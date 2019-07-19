@@ -1,0 +1,268 @@
+
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>Document</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+        }
+
+        input {
+            outline: none;
+            border: 1px solid #333;
+        }
+
+        .form {
+            width: 400px;
+            margin: 100px auto;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+        }
+
+        .row {
+            display: flex;
+        }
+
+        .cell {
+            padding: 0 10px;
+            line-height: 55px;
+        }
+
+        .f2 {
+            flex: 2;
+        }
+
+        .f3 {
+            flex: 3;
+        }
+
+        .control {
+            display: inline-block;
+            width: 100%;
+            height: 34px;
+            padding: 6px 12px;
+            border-radius: 4px;
+            border: 1px solid #ccc;
+            box-sizing: border-box;
+            vertical-align: middle;
+        }
+
+        .btn {
+            display: inline-block;
+            padding: 6px 12px;
+            margin-bottom: 0;
+            text-align: center;
+            white-space: nowrap;
+            vertical-align: middle;
+            border: 1px solid transparent;
+            border-radius: 4px;
+            color: #333;
+            background-color: #fff;
+            border-color: #ccc;
+            vertical-align: middle;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="form">
+        <form action="" id="registerForm" method="get">
+            <div class="row">
+                <div class="cell f2">请输入用户名：</div>
+                <div class="cell f3"><input type="text" class="control" name="userName"></div>
+            </div>
+            <div class="row">
+                <div class="cell f2">请输入密码：</div>
+                <div class="cell f3"><input type="text" class="control" name="password"></div>
+            </div>
+            <div class="row">
+                <div class="cell f2">请输入手机号码：</div>
+                <div class="cell f3"><input type="text" class="control" name="phoneNumber" ></div>
+            </div>
+            <br>
+            <div class="row">
+                <div class="cell f2"></div>
+                <div class="cell f3">
+                    <input type="submit" class="btn" value="提交">
+                </div>
+            </div>
+
+        </form>
+    </div>
+</body>
+<script>
+    let form = document.querySelector('#registerForm')
+    console.log()
+/*
+  上一个页面的推导
+    可以处理用户名的判断了
+    如果要新增密码的判断，需要把代码重复使用，就把验证的函数进行封装
+        发现验证的过程，需要不同的控件的value，不同的错误提示信息
+*/
+
+// 把验证的函数改造，改造成具有参数的形式
+// 验证不同的控件的value是否为空，需要两个参数
+// 一个是控件的value,一个是错误提示信息
+
+//用一个对象以键值对的方式存起来
+let strategies = {
+    //封装两个函数方法
+//传入两个形参
+//一个value的空间，一个是错误提示信息
+    isNonEmpty : function(val,errMas){
+    //判断有没有输入内容
+    if(val === ''){
+        return errMas;
+    }
+},
+//这个是封装输入的够不够8位数字
+//传入形参，一个是value的空间，一个是长度，一个是错误提示信息
+    minLength : function(val,len,errMas){
+    //判断输入的够不够8位数字
+    if(val.length < len){
+        //就返回err
+        return errMas;
+    }
+ },
+    isMobile : function(val,errMas){
+        if(!/(^1[3|5|8][0-9]{9}$)/.test(val)){
+            return errMas;
+        }
+    }
+}
+
+// 调用实例函数
+function Validator(){
+    //里面放一个数组，用来存函数的方法
+    this.validateFuncs = [];
+}
+
+//添加方法
+//dom对象是valuse的控件，rulus是调用下面的
+Validator.prototype.add = function(dom,rules){
+    console.log(dom,'-----------')
+    //循环数组
+    for(let i = 0; i < rules.length; i++){
+        //用变量把数组存起来
+        let rule = rules[i];
+        //把规则用函数存起来
+        let fn = function(){
+            //validateFunName 可能是由分割：的，所以先分割开
+            let pramArr = rule.validateFunName.split(':')
+            //然后把前面的minLength,移出
+            let funName = pramArr.shift();
+            //然后把errMas存进来数组的后面
+            pramArr.push(rule.errMas)
+            //把vluse存到数组的前面
+            pramArr.unshift(dom.value);
+            //要返回值
+            //因为funName 是一个字符串，所以我们要用一个键的方式存进来.
+            return strategies[funName].apply(dom,pramArr);
+        }
+        this.validateFuncs.push(fn)
+    }
+}
+
+//添加验证的方法
+Validator.prototype.start = function(){
+    //循环数组
+    for(let i = 0; i < this.validateFuncs.length; i++){
+        //如果验证有问题，就出现提示框
+        //errmas等于validateFuncs的第i个，因为这里简写所以直接写成validateFuncs[i](),既可以获取到数组的第[i]个，也可以调用函数。
+        let errMas = this.validateFuncs[i]();
+        //判断
+        if(errMas){
+            return errMas;
+        }
+    }
+}
+
+
+
+
+//new 出来
+//然后把参数传进去
+let old = new Validator();
+old.add(form.userName,
+    [{
+        validateFunName : 'isNonEmpty',
+        errMas : '用户名不能为空'
+    },
+    {
+        validateFunName : 'minLength:8',
+        errMas : '用户名的长度不能小于8位数'
+    }
+])
+//添加验证密码的功能
+old.add(form.password,[
+    {
+        validateFunName : 'isNonEmpty',
+        errMas : '请输入密码，密码不能为空'
+    },
+    {
+        validateFunName : 'minLength:6',
+        errMas : '请输入6位数的密码'
+    }
+])
+//添加验证手机号的功能
+old.add(form.phoneNumber,
+    [{
+        validateFunName : 'isNonEmpty',
+        errMas : '请输入正确的手机号码'
+    },
+    {
+        validateFunName : 'isMobile',
+        errMas : '请输入11位数字的手机号码'
+    }
+])
+
+
+
+//将这两个方法存到一个数组里面
+//数组里面放匿名函数，然后才在里面调用
+// let validateFacu = [function(){
+//     return isNonEmpty(form.userName.value,'用户名不能为空')
+// },function(){
+//     return minLength(form.userName.value,8,'输入的字符要够8位数')
+// },function(){
+//     return isNonEmpty(form.password.value,'密码不能为空')
+// },function(){
+//     return minLength(form.password.value,6,'输入的密码要够6位数')
+// },function(){
+//     return isNonEmpty(form.phoneNumber.value,'手机号码不能为空')
+// },function(){
+//     return minLength(form.phoneNumber.value,11,'输入的密码要够11位数')
+// }]
+
+//封装一个函数遍历数组
+// function validate(){
+//     for(let i = 0; i < validateFacu.length; i++){
+//         let errMas = validateFacu[i]();
+//         //判断是否输入
+//         if(errMas){
+//             return errMas;
+//         }
+//     }
+// }
+
+
+//先获取按钮
+let btn = document.querySelector('.btn')
+//注册点击事件
+btn.onclick = function(e){
+    //这里吧start在这里调用，因为一点击就要开始验证了
+    e.preventDefault();
+    let errMas = old.start();
+    //判断是否输入了，如果没有就阻止跳转
+    if(errMas){
+        alert(errMas);
+    }
+}
+</script>
+</html>
